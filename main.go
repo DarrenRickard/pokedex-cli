@@ -2,12 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
+	"github.com/darrenrickard/pokedexcli/internal/pokeapi"
+	
 )
 
 // Data
@@ -63,12 +62,6 @@ func main() {
 		} else {
 			fmt.Println("Unknown command")
 		}	
-		// for _, cmd := range commands {
-		// 	if cmd.name == first {
-		// 		cmd.callback()
-		// 		continue
-		// 	}
-		// }
 	} 
 	// End main program loop
 }
@@ -90,51 +83,15 @@ func commandHelp(commands map[string]cliCommand) error {
 	return nil
 }
 
-type (
-	LocationArea struct {
-		Count    int                `json:"count"`
-		Next     string             `json:"next"`
-		Previous string             `json:"previous"`
-		Results  []Results			`json:"results"`
-	}
-
-	Results struct {
-		Name	string		`json:"name"`	
-		URL		string		`json:"url"`
-	}
-)
-
-
 func commandMap() error {
-	var pokemaps LocationArea
-	fmt.Println("Creating Request...")
-	req, err := http.NewRequest("GET", "https://pokeapi.co/api/v2/location-area/", nil)	
+	url := "https://pokeapi.co/api/v2/location-area/"
+	locations, err := pokeapi.FetchPokeLocations(url)
 	if err != nil {
-		return fmt.Errorf("Error creating request: %v", err)
+		fmt.Println(err)
 	}
-	req.Header.Set("limit", "20")
-	req.Header.Set("offset", "20")	
-	fmt.Println("Sending Request...")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	fmt.Println("Request sent, Response received")
-	if err != nil {
-		return fmt.Errorf("Error creating request: %v", err)
+	for _, l := range locations {
+		fmt.Println(l)
 	}
-	if res.StatusCode > 299 {
-		return fmt.Errorf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, res.Body)	
-	}
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("Error reading resource: %v", err)
-	}
-	if err := json.Unmarshal(body, &pokemaps); err != nil {
-		return fmt.Errorf("Error Unmarshal'ing response body:\n%v", err)
-	}
-	for _, r := range pokemaps.Results {
-		fmt.Println(r.Name)
-	}
-	fmt.Println("pokemaps printed")
 	return nil
 }
 
