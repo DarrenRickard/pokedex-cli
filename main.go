@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -30,6 +33,11 @@ func main() {
 			description: 	"Displays a help message",
 			callback:		nil,
 		},
+		"map": {
+			name: 			"map",
+			description: 	"Displays names of location areas in the Pokemon world",
+			callback: 		commandMap,
+		},
 	}
 	// Assigns "help" callback function after map has been initialized to access the map in callback
 	commands["help"] = cliCommand {
@@ -49,7 +57,9 @@ func main() {
 		first := strings.ToLower(words[0])
 		cmd, exists := commands[first]
 		if exists {
-			cmd.callback()
+			if err := cmd.callback(); err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			fmt.Println("Unknown command")
 		}	
@@ -77,6 +87,54 @@ func commandHelp(commands map[string]cliCommand) error {
 		msg := fmt.Sprintf("%s: %s", v.name, v.description)
 		fmt.Println(msg)
 	}
+	return nil
+}
+
+type (
+	LocationArea struct {
+		Count    int                `json:"count"`
+		Next     string             `json:"next"`
+		Previous string             `json:"previous"`
+		Results  []Results			`json:"results"`
+	}
+
+	Results struct {
+		Name	string		`json:"name"`	
+		URL		string		`json:"url"`
+	}
+)
+
+
+func commandMap() error {
+	var pokemaps LocationArea
+	fmt.Println("Creating Request...")
+	req, err := http.NewRequest("GET", "https://pokeapi.co/api/v2/location-area/", nil)	
+	if err != nil {
+		return fmt.Errorf("Error creating request: %v", err)
+	}
+	req.Header.Set("limit", "20")
+	req.Header.Set("offset", "20")	
+	fmt.Println("Sending Request...")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	fmt.Println("Request sent, Response received")
+	if err != nil {
+		return fmt.Errorf("Error creating request: %v", err)
+	}
+	if res.StatusCode > 299 {
+		return fmt.Errorf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, res.Body)	
+	}
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("Error reading resource: %v", err)
+	}
+	if err := json.Unmarshal(body, &pokemaps); err != nil {
+		return fmt.Errorf("Error Unmarshal'ing response body:\n%v", err)
+	}
+	for _, r := range pokemaps.Results {
+		fmt.Println(r.Name)
+	}
+	fmt.Println("pokemaps printed")
 	return nil
 }
 
