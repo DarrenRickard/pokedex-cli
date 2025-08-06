@@ -37,8 +37,13 @@ func main() {
 	}
 	commands["map"] = cliCommand{
 		name: 			"map",
-		description: 	"Displays names of location areas in the Pokemon world",
+		description: 	"Displays next 20 names of location areas in the Pokemon world",
 		callback: 		func() error {return commandMap(&pokeapi.Links)},
+	}
+	commands["mapb"] = cliCommand{
+		name: 			"mapb",
+		description: 	"Displays previous 20 names of location areas in the Pokemon world",
+		callback: 		func() error {return commandMapb(&pokeapi.Links)},
 	}
 
 	// Main program loop
@@ -80,17 +85,26 @@ func commandHelp(commands map[string]cliCommand, links* pokeapi.PageLinks) error
 }
 
 func commandMap(links* pokeapi.PageLinks) error {
-	err := pokeapi.FetchLocationPageLinks(links.Current)
-	if err != nil {
-		fmt.Println(err)
-	}
-	locations, err := pokeapi.FetchPokeLocations(links.Current)	
+	locations, err := pokeapi.FetchPokeLocations(links.Next)	
 	if err != nil {
 		fmt.Println(err)
 	}
 	for _, l := range locations {
 		fmt.Println(l)
 	}
+	// fmt.Printf("Current link: %s\nNext link: %s\nPrevious link: %s\n", pokeapi.Links.Current, pokeapi.Links.Next, pokeapi.Links.Previous)
+	return nil
+}
+
+func commandMapb(links* pokeapi.PageLinks) error {
+	locations, err := pokeapi.FetchPokeLocations(links.Previous)	
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, l := range locations {
+		fmt.Println(l)
+	}
+	// fmt.Printf("Current link: %s\nNext link: %s\nPrevious link: %s\n", pokeapi.Links.Current, pokeapi.Links.Next, pokeapi.Links.Previous)
 	return nil
 }
 
