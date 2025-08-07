@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
 	"github.com/darrenrickard/pokedexcli/internal/pokeapi"
-	
+	"github.com/darrenrickard/pokedexcli/internal/pokecache"
 )
 
 // Data
@@ -21,6 +23,10 @@ type cliCommand struct {
 // End data
 
 func main() {
+
+	// Initialize cache before commands so it can be used in callback functions
+	cache := pokecache.NewCache(5*time.Second)
+
 	// Declare CLI Commands map
 	commands := map[string]cliCommand {}
 
@@ -38,12 +44,12 @@ func main() {
 	commands["map"] = cliCommand{
 		name: 			"map",
 		description: 	"Displays next 20 names of location areas in the Pokemon world",
-		callback: 		func() error {return commandMap(&pokeapi.Links)},
+		callback: 		func() error {return commandMap(&pokeapi.Links, &cache)},
 	}
 	commands["mapb"] = cliCommand{
 		name: 			"mapb",
 		description: 	"Displays previous 20 names of location areas in the Pokemon world",
-		callback: 		func() error {return commandMapb(&pokeapi.Links)},
+		callback: 		func() error {return commandMapb(&pokeapi.Links, &cache)},
 	}
 
 	// Main program loop
@@ -84,27 +90,55 @@ func commandHelp(commands map[string]cliCommand, links* pokeapi.PageLinks) error
 	return nil
 }
 
-func commandMap(links* pokeapi.PageLinks) error {
-	locations, err := pokeapi.FetchPokeLocations(links.Next)	
-	if err != nil {
-		fmt.Println(err)
+func commandMap(links* pokeapi.PageLinks, c* pokecache.Cache) error {
+	// if links.Next exists in cache.entries { pass cache.entries[links.Next] to a function that unmarshals []byte and returns []string }
+	link, exists := c.Entries[links.Next]
+	// if link exists in cache, just print cache entry's data 
+	var locations []string
+	if exists {
+		l, err := pokeapi.UnmarshalToList(link.Val)
+		if err != nil {
+			fmt.Println(err)
+		}
+		locations = l
+	} else { // else send GET request for data
+
+		l, err := pokeapi.FetchPokeLocations(links.Next, c)	
+		if err != nil {
+			fmt.Println(err)
+		}
+		locations = l
 	}
-	for _, l := range locations {
-		fmt.Println(l)
-	}
-	// fmt.Printf("Current link: %s\nNext link: %s\nPrevious link: %s\n", pokeapi.Links.Current, pokeapi.Links.Next, pokeapi.Links.Previous)
+	printLocations(locations)
 	return nil
 }
 
-func commandMapb(links* pokeapi.PageLinks) error {
-	locations, err := pokeapi.FetchPokeLocations(links.Previous)	
-	if err != nil {
-		fmt.Println(err)
-	}
+func printLocations(locations []string) {
 	for _, l := range locations {
 		fmt.Println(l)
 	}
-	// fmt.Printf("Current link: %s\nNext link: %s\nPrevious link: %s\n", pokeapi.Links.Current, pokeapi.Links.Next, pokeapi.Links.Previous)
+}
+
+func commandMapb(links* pokeapi.PageLinks, c* pokecache.Cache) error {
+	// if links.Previous exists in cache.entries 
+	link, exists := c.Entries[links.Previous]
+	// if link exists in cache, just use cache entry's data 
+	var locations []string
+	if exists {
+		l, err := pokeapi.UnmarshalToList(link.Val)
+		if err != nil {
+			fmt.Println(err)
+		}
+		locations = l
+	} else { // else send GET request for data
+
+		l, err := pokeapi.FetchPokeLocations(links.Previous, c)	
+		if err != nil {
+			fmt.Println(err)
+		}
+		locations = l
+	}
+	printLocations(locations)
 	return nil
 }
 

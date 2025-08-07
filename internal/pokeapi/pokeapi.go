@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"io"
+	"github.com/darrenrickard/pokedexcli/internal/pokecache"
 )
 
 type (
@@ -35,7 +36,7 @@ var Links = PageLinks {
 
 var firstPage = "https://pokeapi.co/api/v2/location-area/"
 
-func FetchPokeLocations(url string) ([]string, error) {
+func FetchPokeLocations(url string, c *pokecache.Cache) ([]string, error) {
 	// url is blank if user is on first page
 	if url == "" {
 		return nil, fmt.Errorf("you're on the first page")
@@ -58,7 +59,7 @@ func FetchPokeLocations(url string) ([]string, error) {
 	if res.StatusCode > 299 {
 		return nil, fmt.Errorf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, res.Body)	
 	}
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body) // body is type of []byte, separate this to own function to use globally
 	if err != nil {
 		return nil, fmt.Errorf("Error reading resource: %v", err)
 	}
@@ -68,9 +69,24 @@ func FetchPokeLocations(url string) ([]string, error) {
 	for _, r := range pokemaps.Results {
 		locations = append(locations, r.Name)	
 	}
+	// Add current link and data to cache map
+	c.Add(Links.Current, body)
 
 	Links.Next = pokemaps.Next
 	Links.Previous = pokemaps.Previous
+
+	return locations, nil
+}
+
+func UnmarshalToList(b []byte) ([]string, error) {
+	var locations []string
+	var pokemaps LocationArea
+	if err := json.Unmarshal(b, &pokemaps); err != nil {
+		return nil, fmt.Errorf("Error Unmarshal'ing cache item data:\n%v", err)
+	}
+	for _, r := range pokemaps.Results {
+		locations = append(locations, r.Name)	
+	}
 
 	return locations, nil
 }
