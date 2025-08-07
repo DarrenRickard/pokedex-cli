@@ -96,7 +96,7 @@ func commandMap(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 	_, exists := c.Entries[links.Next]
 	// if link exists in cache, just print cache entry's data 
 	var locations []string
-	// c1 := make(chan pokecache.CacheEntryData)
+	// the entry might exist at evaluation time but when c.Get(links.Next) is called, it might be gone already. refactor this code
 	if exists {
 		fmt.Println("Getting page from cache!")
 		// this functionality can be refactored. doesnt need previous link, exists to determine if the link exists in cache.
@@ -105,7 +105,6 @@ func commandMap(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 		// l, err := pokeapi.UnmarshalToList(cachedList.Data)
 		var cachedLocation pokecache.CacheEntryData
 		go func() {
-
 			cachedLocation = c.Get(links.Next)		
 		}()
 		l, err := pokeapi.UnmarshalToList(links.Next, cachedLocation.Data)
