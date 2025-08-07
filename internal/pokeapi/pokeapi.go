@@ -30,11 +30,11 @@ type PageLinks struct {
 
 var Links = PageLinks {
 	Current: 		"",
-	Next: 			firstPage,
+	Next: 			FirstPage,
 	Previous: 		"",
 }
 
-var firstPage = "https://pokeapi.co/api/v2/location-area/"
+const FirstPage = "https://pokeapi.co/api/v2/location-area/"
 
 func FetchPokeLocations(url string, c *pokecache.Cache) ([]string, error) {
 	// url is blank if user is on first page
@@ -70,7 +70,7 @@ func FetchPokeLocations(url string, c *pokecache.Cache) ([]string, error) {
 		locations = append(locations, r.Name)	
 	}
 	// Add current link and data to cache map
-	c.Add(Links.Current, body)
+	go c.Add(Links.Current, body)
 
 	Links.Next = pokemaps.Next
 	Links.Previous = pokemaps.Previous
@@ -78,15 +78,19 @@ func FetchPokeLocations(url string, c *pokecache.Cache) ([]string, error) {
 	return locations, nil
 }
 
-func UnmarshalToList(b []byte) ([]string, error) {
+func UnmarshalToList(url string, b []byte) ([]string, error) {
+	Links.Current = url
 	var locations []string
 	var pokemaps LocationArea
+	// !!! bug is occuring here after reading from cache once
 	if err := json.Unmarshal(b, &pokemaps); err != nil {
 		return nil, fmt.Errorf("Error Unmarshal'ing cache item data:\n%v", err)
 	}
 	for _, r := range pokemaps.Results {
 		locations = append(locations, r.Name)	
 	}
+	Links.Next = pokemaps.Next
+	Links.Previous = pokemaps.Previous
 
 	return locations, nil
 }

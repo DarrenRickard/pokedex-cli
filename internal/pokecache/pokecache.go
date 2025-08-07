@@ -8,6 +8,11 @@ import (
 
 var mux = &sync.Mutex{}
 
+type CacheEntryData struct {
+	Data     []byte
+	exists   bool
+}
+
 type cacheEntry struct {
 	createdAt		time.Time
 	Val				[]byte
@@ -31,11 +36,20 @@ func NewCache(i time.Duration) Cache {
 		Entries: make(map[string]cacheEntry),
 		interval: i,
 	}
-	cache.reapLoop()
+	// cache.reapLoop()
 	return cache
 }
 
 func (c *Cache) Add(key string, val []byte ) error {
+	// !!! need to check if key exists in cache, if exists, just return nil
+	c1 := make(chan CacheEntryData)
+	go func() {
+		c1 <- c.Get(key)
+	}()
+	cachedData := <- c1
+	if cachedData.exists {
+		return nil
+	}
 	if c.Entries == nil {
 		return fmt.Errorf("Error: cacheEntry map not initialized in Cache struct")
 	}
@@ -46,14 +60,18 @@ func (c *Cache) Add(key string, val []byte ) error {
 	return nil
 }
 
-func (c *Cache) Get(key string) ([]byte, bool) {
+func (c *Cache) Get(key string) CacheEntryData {
 	mux.Lock()
 	entry, ok := c.Entries[key] 
 	mux.Unlock()
 	if !ok {
-		return nil, false	
+		return CacheEntryData{}
 	}
-	return entry.Val, true
+	cacheData := CacheEntryData {
+		Data: entry.Val,
+		exists: true,
+	}
+	return cacheData
 }
 
 func (c *Cache) reapLoop() {
