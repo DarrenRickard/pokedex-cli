@@ -82,7 +82,6 @@ func UnmarshalToList(url string, b []byte) ([]string, error) {
 	Links.Current = url
 	var locations []string
 	var pokemaps LocationArea
-	// !!! bug is occuring here after reading from cache once
 	if err := json.Unmarshal(b, &pokemaps); err != nil {
 		return nil, fmt.Errorf("Error Unmarshal'ing cache item data:\n%v", err)
 	}
