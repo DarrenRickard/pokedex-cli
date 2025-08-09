@@ -51,6 +51,11 @@ func main() {
 		description: 	"Displays previous 20 names of location areas in the Pokemon world",
 		callback: 		func() error {return commandMapb(&pokeapi.Links, &cache)},
 	}
+	commands["ccache"] = cliCommand{
+		name: "ccache",
+		description: "Displays the current cache",
+		callback:  func() error {return list(&cache)},
+	}
 
 	// Main program loop
 	scanner := bufio.NewScanner(os.Stdin)
@@ -98,7 +103,6 @@ func commandMap(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 	}()
 	cachedLocation := <- ch
 	if cachedLocation.Exists {
-		fmt.Println("Getting page from cache...")
 		l, err := pokeapi.UnmarshalToList(links.Next, cachedLocation.Data)
 		if err != nil {
 			fmt.Println(err)
@@ -114,7 +118,7 @@ func commandMap(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 		locations = l
 	}
 	printLocations(locations)
-	fmt.Printf("Current: %s\nNext: %s\nPrevious: %s", links.Current, links.Next, links.Previous)
+	// fmt.Printf("Current: %s\nNext: %s\nPrevious: %s", links.Current, links.Next, links.Previous)
 	return nil
 }
 
@@ -126,7 +130,7 @@ func printLocations(locations []string) {
 
 func commandMapb(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 	if links.Previous == "" {
-		fmt.Printf("Current: %s\nNext: %s\nPrevious: %s", links.Current, links.Next, links.Previous)
+		// fmt.Printf("Current: %s\nNext: %s\nPrevious: %s", links.Current, links.Next, links.Previous)
 		return fmt.Errorf("you're on the first page")
 	}
 
@@ -137,7 +141,6 @@ func commandMapb(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 	}()
 	cachedLocation := <- ch
 	if cachedLocation.Exists {
-		fmt.Println("Getting page from cache...")
 		l, err := pokeapi.UnmarshalToList(links.Previous, cachedLocation.Data)
 		if err != nil {
 			fmt.Println(err)
@@ -153,7 +156,7 @@ func commandMapb(links* pokeapi.PageLinks, c* pokecache.Cache) error {
 		locations = l
 	}
 	printLocations(locations)
-	fmt.Printf("Current: %s\nNext: %s\nPrevious: %s", links.Current, links.Next, links.Previous)
+	// fmt.Printf("Current: %s\nNext: %s\nPrevious: %s", links.Current, links.Next, links.Previous)
 	return nil
 }
 
@@ -162,4 +165,10 @@ func cleanInput(text string) []string {
 	return cleanedInput
 }
 
+func list(c* pokecache.Cache) error {
+	for key := range c.Entries {
+		fmt.Println(key)
+	}
+	return nil
+}
 // End functions

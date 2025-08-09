@@ -34,7 +34,7 @@ var Links = PageLinks {
 	Previous: 		"",
 }
 
-const FirstPage = "https://pokeapi.co/api/v2/location-area/"
+const FirstPage = "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20"
 
 func FetchPokeLocations(url string, c *pokecache.Cache) ([]string, error) {
 	// url is blank if user is on first page
@@ -93,3 +93,4 @@ func UnmarshalToList(url string, b []byte) ([]string, error) {
 
 	return locations, nil
 }
+

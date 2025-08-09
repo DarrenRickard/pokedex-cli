@@ -71,7 +71,6 @@ func (c *Cache) Get(key string) CacheEntryData {
 		Data: entry.Val,
 		Exists: true,
 	}
-	fmt.Println("returning from cache.Get()")
 	return cacheData
 }
 
