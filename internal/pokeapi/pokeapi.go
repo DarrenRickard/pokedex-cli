@@ -8,6 +8,10 @@ import (
 	"github.com/darrenrickard/pokedexcli/internal/pokecache"
 )
 
+var BaseURL = "https://pokeapi.co/api/v2/location-area/"
+
+// need to refactor LocationArea and LocationAreaDetailed into an enum Location
+
 type (
 	LocationArea struct {
 		Count    int                `json:"count"`
@@ -132,17 +136,15 @@ func FetchPokeLocations(url string, c *pokecache.Cache) ([]string, error) {
 }
 
 
-func FetchLocationPokemon(location* string, c *pokecache.Cache) ([]string, error) {
-	if *location == "" {
+func FetchLocationPokemon(location string, c *pokecache.Cache) ([]string, error) {
+	if location == "" {
 		return nil, fmt.Errorf("missing location")
 	}
 
-	baseURL := "https://pokeapi.co/api/v2/location-area/"
-	fullURL := baseURL + *location
 
 	var pokemonList []string
 	var locationDetailed LocationAreaDetailed
-	req, err := http.NewRequest("GET", fullURL, nil)	
+	req, err := http.NewRequest("GET", location, nil)	
 	if err != nil {
 		return nil, fmt.Errorf("Error creating request: %v", err)
 	}
@@ -165,12 +167,15 @@ func FetchLocationPokemon(location* string, c *pokecache.Cache) ([]string, error
 		pokemonList = append(pokemonList, val.Pokemon.Name)	
 	}
 	// Add current link and data to cache map
-	go c.Add(fullURL, body)
+	go c.Add(location, body)
 
 	return pokemonList, nil
 }
 
 func UnmarshalToList(url string, b []byte) ([]string, error) {
+	// move Links update outside of UnmarshalToList()
+	// change pokemaps LocationArea to location enum/any
+	// move range pokemaps.Results outside of UnmarshalToList()
 	Links.Current = url
 	var locations []string
 	var pokemaps LocationArea
@@ -186,3 +191,14 @@ func UnmarshalToList(url string, b []byte) ([]string, error) {
 	return locations, nil
 }
 
+func UnmarshalPokemonToList(url string, b []byte) ([]string, error) {
+	var pokemon []string
+	var location LocationAreaDetailed
+	if err := json.Unmarshal(b, &location); err != nil {
+		return nil, fmt.Errorf("Error Unmarshal'ing cache item data:\n%v", err)
+	}
+	for _, r := range location.PokemonEncounters{
+		pokemon = append(pokemon, r.Pokemon.Name)	
+	}
+	return pokemon, nil
+}

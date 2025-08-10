@@ -189,12 +189,31 @@ func list(c* pokecache.Cache) error {
 }
 
 func explore(c* pokecache.Cache, arg* string) error {
-	pokemonList, err := pokeapi.FetchLocationPokemon(arg, c)
-	if err != nil {
-		fmt.Println(err)
+	fmt.Printf("Exploring %s...\n", *arg)
+	fullUrl := pokeapi.BaseURL + *arg
+	var pokemon []string
+	ch := make(chan pokecache.CacheEntryData)
+	go func() {
+		ch <- c.Get(fullUrl)		
+	}()
+	cachedLocation := <- ch
+	if cachedLocation.Exists {
+		p, err := pokeapi.UnmarshalPokemonToList(fullUrl, cachedLocation.Data)
+		if err != nil {
+			fmt.Println(err)
+		}
+		pokemon = p
+		fmt.Println("Got pokemon from cache!")
+	} else {
+		pokemonList, err := pokeapi.FetchLocationPokemon(fullUrl, c)
+		if err != nil {
+			fmt.Println(err)
+		}
+		pokemon = pokemonList
 	}
-	for _, pokemon := range pokemonList	{
-		fmt.Println(pokemon)
+	fmt.Println("Found Pokemon:")
+	for _, p := range pokemon {
+		fmt.Printf(" - %s\n", p)
 	}
 	return nil
 }
