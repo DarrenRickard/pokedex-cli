@@ -26,6 +26,7 @@ func main() {
 
 	// Initialize cache before commands so it can be used in callback functions
 	cache := pokecache.NewCache(5*time.Second)
+	var arg string
 
 	// Declare CLI Commands map
 	commands := map[string]cliCommand {}
@@ -56,6 +57,11 @@ func main() {
 		description: "Displays the current cache",
 		callback:  func() error {return list(&cache)},
 	}
+	commands["explore"] = cliCommand{
+		name: "explore",
+		description: "Displays pokemon located in the given location",
+		callback: func() error {return explore(&cache, &arg)},
+	}
 
 	// Main program loop
 	scanner := bufio.NewScanner(os.Stdin)
@@ -66,6 +72,14 @@ func main() {
 		userInput := scanner.Text()
 		words = cleanInput(userInput)
 		first := strings.ToLower(words[0])
+		// if len(os.Args) > 1 {
+		// 	cmdArg := os.Args[1]
+		// 	arg = strings.ToLower(cmdArg)
+		// }
+		if len(words) > 1 {
+			arg = strings.ToLower(words[1])
+		}
+
 		cmd, exists := commands[first]
 		if exists {
 			if err := cmd.callback(); err != nil {
@@ -74,6 +88,8 @@ func main() {
 		} else {
 			fmt.Println("Unknown command")
 		}	
+		// reset arg
+		arg = ""
 	} 
 	// End main program loop
 }
@@ -168,6 +184,17 @@ func cleanInput(text string) []string {
 func list(c* pokecache.Cache) error {
 	for key := range c.Entries {
 		fmt.Println(key)
+	}
+	return nil
+}
+
+func explore(c* pokecache.Cache, arg* string) error {
+	pokemonList, err := pokeapi.FetchLocationPokemon(arg, c)
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, pokemon := range pokemonList	{
+		fmt.Println(pokemon)
 	}
 	return nil
 }
