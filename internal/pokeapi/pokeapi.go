@@ -9,6 +9,7 @@ import (
 )
 
 var BaseURL = "https://pokeapi.co/api/v2/location-area/"
+var PokeURL = "https://pokeapi.co/api/v2/pokemon/"
 
 // need to refactor LocationArea and LocationAreaDetailed into an enum Location
 
@@ -170,6 +171,33 @@ func FetchLocationPokemon(location string, c *pokecache.Cache) ([]string, error)
 	go c.Add(location, body)
 
 	return pokemonList, nil
+}
+
+func FetchPokemon(url string) (Pokemon, error) {
+	var pokemon Pokemon 
+	if url == "" {
+		return pokemon, fmt.Errorf("missing location")
+	}
+	req, err := http.NewRequest("GET", url, nil)	
+	if err != nil {
+		return pokemon, fmt.Errorf("Error creating request: %v", err)
+	}
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return pokemon, fmt.Errorf("Error receiving response: %v", err)
+	}
+	if res.StatusCode > 299 {
+		return pokemon, fmt.Errorf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, res.Body)	
+	}
+	body, err := io.ReadAll(res.Body) // body is type of []byte, separate this to own function to use globally
+	if err != nil {
+		return pokemon, fmt.Errorf("Error reading resource: %v", err)
+	}
+	if err := json.Unmarshal(body, &pokemon); err != nil {
+		return pokemon, fmt.Errorf("Error Unmarshal'ing response body:\n%v", err)
+	}
+	return pokemon, nil
 }
 
 func UnmarshalToList(url string, b []byte) ([]string, error) {

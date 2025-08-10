@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 )
 
 // Data
+
+var Pokedex = map[string]pokeapi.Pokemon{}
 
 type cliCommand struct {
 	name		string
@@ -61,6 +64,11 @@ func main() {
 		name: "explore",
 		description: "Displays pokemon located in the given location",
 		callback: func() error {return explore(&cache, &arg)},
+	}
+	commands["catch"] = cliCommand{
+		name: "catch",
+		description: "Throws a pokeball and attempts to catch the Pokemon, adding it to Poxedex upon success",
+		callback: func() error {return catch(&arg)},
 	}
 
 	// Main program loop
@@ -217,4 +225,38 @@ func explore(c* pokecache.Cache, arg* string) error {
 	}
 	return nil
 }
+
+func catch(arg* string) error {
+	isCaught := false
+	fmt.Printf("Throwing a Pokeball at %s...\n", *arg)
+	fullUrl := pokeapi.PokeURL + *arg
+	pokemon, err := pokeapi.FetchPokemon(fullUrl)
+	if err != nil {
+		return fmt.Errorf("Error finding %s: %v", *arg, err)
+	}
+	rng := rand.Float64()
+	maxChance := 0.9
+	scale := 1000.0
+	catchChance := maxChance - (float64(pokemon.BaseExperience) / scale)
+
+	if catchChance < 0.1 {
+		catchChance = 0.1
+	} else if catchChance > maxChance {
+		catchChance = maxChance
+	}
+
+	// Random chance. goodluck.
+	isCaught = rng < catchChance
+
+	// if isCaught, add pokemon to pokedex
+	if isCaught {
+		fmt.Printf("%s was caught!\n", pokemon.Name)
+		Pokedex[pokemon.Name] = pokemon
+	} else {
+		fmt.Printf("%s escaped!\n", pokemon.Name)
+	}
+
+	return nil
+}
+
 // End functions
