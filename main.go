@@ -72,8 +72,13 @@ func main() {
 	}
 	commands["inspect"] = cliCommand{
 		name: "inspect",
-		description: "Inspect caught pokemon in pokedex",
+		description: "Inspect specified caught pokemon in pokedex",
 		callback: func() error {return inspect(&arg)},
+	}
+	commands["pokedex"] = cliCommand{
+		name: "pokedex",
+		description: "List all caught pokemon",
+		callback: func() error {return pokedex()},
 	}
 
 	// Main program loop
@@ -279,6 +284,14 @@ func inspect(arg* string) error {
 		}
 	} else {
 		return fmt.Errorf("you have not caught that pokemon")
+	}
+	return nil
+}
+
+func pokedex() error {
+	fmt.Println("Your Pokedex:")
+	for _, pk := range Pokedex {
+		fmt.Printf(" - %s\n", pk.Name)	
 	}
 	return nil
 }
