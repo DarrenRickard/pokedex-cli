@@ -70,6 +70,11 @@ func main() {
 		description: "Throws a pokeball and attempts to catch the Pokemon, adding it to Poxedex upon success",
 		callback: func() error {return catch(&arg)},
 	}
+	commands["inspect"] = cliCommand{
+		name: "inspect",
+		description: "Inspect caught pokemon in pokedex",
+		callback: func() error {return inspect(&arg)},
+	}
 
 	// Main program loop
 	scanner := bufio.NewScanner(os.Stdin)
@@ -259,4 +264,22 @@ func catch(arg* string) error {
 	return nil
 }
 
+func inspect(arg* string) error {
+	target, exists := Pokedex[*arg]
+	if exists {
+		fmt.Printf("Name: %s\nHeight: %v\nWeight: %v\n",
+			target.Name, target.Height, target.Weight)
+		fmt.Println("Stats:")
+		for _, stat := range target.Stats {
+			fmt.Printf(" -%s: %v\n", stat.Stat.Name, stat.BaseStat)
+		}
+		fmt.Println("Types:")
+		for _, t := range target.Types {
+			fmt.Printf(" - %s\n",t.Type.Name)
+		}
+	} else {
+		return fmt.Errorf("you have not caught that pokemon")
+	}
+	return nil
+}
 // End functions
